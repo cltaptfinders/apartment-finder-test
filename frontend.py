@@ -239,4 +239,4 @@ if page == "Apartment Finder":
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.warning("⚠️ No apartments found. Try adjusting your search criteria.") 
+            st.warning("No apartments found. Try adjusting your search criteria.") 
