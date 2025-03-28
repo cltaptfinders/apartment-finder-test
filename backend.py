@@ -2,11 +2,9 @@ from flask import Flask, jsonify
 import requests
 import pandas as pd
 from fuzzywuzzy import process
+import json
 
 app = Flask(__name__)
-
-# APIFY API URL (Replace with your actual API URL)
-APIFY_API_URL = "https://api.apify.com/v2/acts/epctex~apartments-scraper/runs/last/dataset/items?token=apify_api_GL1wNUgK91WADqxulii7YA2acoGeZF4k9kCz"
 
 # Load property locations CSV for neighborhood corrections
 try:
@@ -42,11 +40,14 @@ except Exception as e:
     print(f"⚠️ Error loading Formatted_Commission_Manifest.csv: {e}")
     commission_dict = {}
 
+# ✅ Load apartment data from local file instead of Apify API
 def fetch_data():
-    response = requests.get(APIFY_API_URL)
-    if response.status_code == 200:
-        return response.json()
-    return []
+    try:
+        with open("data.json", "r") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"⚠️ Error loading data.json: {e}")
+        return []
 
 @app.route('/search', methods=['GET'])
 def search():
@@ -114,7 +115,7 @@ def search():
                     "Property Name": item.get("propertyName", "N/A"),
                     "Address": address,
                     "Neighborhood": neighborhood,
-                    "Commission": commission,  # Fixed commission mapping
+                    "Commission": commission,
                     "Rent": unit_rent,
                     "Deposit": deposit,
                     "Floorplan": floorplan_name,
