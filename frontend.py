@@ -14,17 +14,14 @@ from datetime import datetime
 st.set_page_config(page_title="Charlotte Apartment Finder", page_icon="🏠", layout="wide")
 
 # 📡 Firebase Authentication Setup (Using Base64 Encoding)
-firebase_key_b64 = os.getenv("FIREBASE_KEY_B64")  # Retrieve Base64-encoded key
-
+firebase_key_b64 = os.getenv("FIREBASE_KEY_B64")
 if firebase_key_b64:
     try:
-        firebase_key_json = base64.b64decode(firebase_key_b64).decode("utf-8")  # Decode to JSON string
-        firebase_key_dict = json.loads(firebase_key_json)  # Convert JSON string to dictionary
-
+        firebase_key_json = base64.b64decode(firebase_key_b64).decode("utf-8")
+        firebase_key_dict = json.loads(firebase_key_json)
         if not firebase_admin._apps:
             cred = credentials.Certificate(firebase_key_dict)
             firebase_admin.initialize_app(cred)
-
         print("✅ Firebase successfully initialized!")
     except Exception as e:
         st.error(f"⚠️ Firebase initialization failed: {e}")
@@ -33,7 +30,6 @@ else:
     st.error("⚠️ FIREBASE_KEY_B64 is missing in environment variables.")
     st.stop()
 
-# 🔑 Firebase Web API Key
 FIREBASE_WEB_API_KEY = "AIzaSyAdWQkhvXlzK4wRy7JxCbWkOGIC3Wkts38"
 
 def authenticate_user(email, password):
@@ -53,7 +49,6 @@ def login_page():
     st.sidebar.image("Logo Ai.png", width=200)
     email = st.text_input("📧 Email", key="email")
     password = st.text_input("🔑 Password", type="password", key="password")
-
     if st.button("Login"):
         user_data = authenticate_user(email, password)
         if user_data:
@@ -80,25 +75,28 @@ st.sidebar.title("📌 Navigation")
 page = st.sidebar.radio("Go to", ["Apartment Finder", "Property Map"])
 
 BACKEND_URL = "https://apartment-finder-backend.onrender.com/search"
-JSON_FILE = "data.json"
-REFRESH_INTERVAL = 86400
 
-@st.cache_data
+# ✅ Minimal debug-enabled version
 def fetch_data():
-    if os.path.exists(JSON_FILE):
-        file_mod_time = os.path.getmtime(JSON_FILE)
-        if time.time() - file_mod_time < REFRESH_INTERVAL:
-            with open(JSON_FILE, "r") as f:
-                return pd.DataFrame(json.load(f))
+    """Fetch data from backend API and return as a DataFrame."""
+    try:
+        response = requests.get(BACKEND_URL)
+        if response.status_code == 200:
+            data = response.json()
+            df = pd.DataFrame(data)
 
-    response = requests.get(BACKEND_URL)
-    if response.status_code == 200:
-        data = response.json()
-        with open(JSON_FILE, "w") as f:
-            json.dump(data, f)
-        return pd.DataFrame(data)
-    else:
-        st.error("⚠️ Failed to fetch data from backend.")
+            # ✅ Debug: Show preview of data and columns
+            st.write("📊 Preview of backend data:")
+            st.write(df.head())
+            st.write("📋 Columns:")
+            st.write(df.columns.tolist())
+
+            return df
+        else:
+            st.error(f"⚠️ Backend error: {response.status_code}")
+            return pd.DataFrame()
+    except Exception as e:
+        st.error(f"⚠️ Failed to fetch data from backend: {e}")
         return pd.DataFrame()
 
 df = fetch_data()
@@ -155,7 +153,6 @@ if page == "Apartment Finder":
 
     if st.sidebar.button("🔎 Search"):
         filtered_df = df.copy()
-
         required_columns = ["Property Name", "Unit Number", "Rent", "Square Footage", "Availability"]
         for col in required_columns:
             if col not in filtered_df.columns:
